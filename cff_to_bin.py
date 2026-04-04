@@ -202,9 +202,10 @@ class CFFToBinApp:
         def do_parse():
             try:
                 parser = CFFParser.from_file(filepath)
-                self.root.after(0, lambda: self._on_parse_done(filepath, parser))
+                self.root.after(0, lambda p=parser: self._on_parse_done(filepath, p))
             except Exception as e:
-                self.root.after(0, lambda: self._on_parse_error(str(e)))
+                err_msg = str(e)
+                self.root.after(0, lambda msg=err_msg: self._on_parse_error(msg))
 
         threading.Thread(target=do_parse, daemon=True).start()
 
@@ -260,12 +261,14 @@ class CFFToBinApp:
                 binary_data = self.parser.get_combined_binary()
                 with open(save_path, 'wb') as f:
                     f.write(binary_data)
+                size = len(binary_data)
                 self.root.after(
                     0,
-                    lambda: self._on_convert_done(save_path, len(binary_data)),
+                    lambda s=size: self._on_convert_done(save_path, s),
                 )
             except Exception as e:
-                self.root.after(0, lambda: self._on_convert_error(str(e)))
+                err_msg = str(e)
+                self.root.after(0, lambda msg=err_msg: self._on_convert_error(msg))
 
         threading.Thread(target=do_convert, daemon=True).start()
 

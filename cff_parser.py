@@ -40,7 +40,7 @@ class BitflagReader:
 
     def read_4byte(self, data, offset):
         if self.check_and_advance():
-            val = struct.unpack_from('<i', data, offset)[0]
+            val = struct.unpack_from('<I', data, offset)[0]
             return val, offset + 4
         return 0, offset
 
@@ -61,7 +61,12 @@ class BitflagReader:
             string_offset = struct.unpack_from('<i', data, offset)[0]
             offset += 4
             str_pos = string_offset + virtual_base
-            end = data.index(b'\x00', str_pos)
+            if str_pos < 0 or str_pos >= len(data):
+                return "", offset
+            try:
+                end = data.index(b'\x00', str_pos)
+            except ValueError:
+                end = len(data)
             return data[str_pos:end].decode('latin-1', errors='replace'), offset
         return "", offset
 
@@ -269,12 +274,10 @@ class CFFParser:
         return segment
 
     def _read_segment_data(self, flash_offset, length):
-        if flash_offset + length > len(self.data):
-            available = len(self.data) - flash_offset
-            if available > 0:
-                return self.data[flash_offset:flash_offset + available]
+        if flash_offset < 0 or length <= 0 or flash_offset >= len(self.data):
             return b""
-        return self.data[flash_offset:flash_offset + length]
+        end = min(flash_offset + length, len(self.data))
+        return self.data[flash_offset:end]
 
     def get_all_segments(self):
         """Returns a flat list of all (block, segment) pairs."""

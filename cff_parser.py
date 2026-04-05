@@ -288,32 +288,15 @@ class CFFParser:
         return results
 
     def get_combined_binary(self):
-        """Returns a full flash binary with segments placed at their correct addresses.
+        """Returns all segment data concatenated — same raw data as C++ exportSegments().
 
-        Creates a 0xFF-filled buffer spanning from the lowest to highest segment
-        address, then places each segment at its from_address offset — matching
-        what a hardware flash programmer (KTag, Autotuner, etc.) would read.
+        Each segment's binary data is extracted from the CFF file at its
+        flash_offset position and appended sequentially, matching what
+        CFFFlashFileTools outputs across its individual .segment files.
         """
-        # Collect all segments with valid address and data
-        placed = []
+        parts = []
         for block in self.data_blocks:
             for segment in block.segments:
-                if segment.data and segment.segment_length > 0:
-                    placed.append(segment)
-
-        if not placed:
-            return b""
-
-        # Find the address range
-        min_addr = min(s.from_address for s in placed)
-        max_addr = max(s.from_address + len(s.data) for s in placed)
-
-        # Create 0xFF-filled buffer (empty flash state)
-        buf = bytearray(b'\xFF' * (max_addr - min_addr))
-
-        # Place each segment at its correct address
-        for seg in placed:
-            offset = seg.from_address - min_addr
-            buf[offset:offset + len(seg.data)] = seg.data
-
-        return bytes(buf)
+                if segment.data:
+                    parts.append(segment.data)
+        return b"".join(parts)

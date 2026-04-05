@@ -225,10 +225,17 @@ class CFFToBinApp:
         )
 
         all_segs = parser.get_all_segments()
-        total_size = sum(len(seg.data) for _, seg in all_segs)
-        self.lbl_segments.configure(
-            text=f"{len(all_segs)} segment(s), {total_size:,} bytes total"
-        )
+        valid_segs = [(b, s) for b, s in all_segs if s.data and s.segment_length > 0]
+        if valid_segs:
+            min_addr = min(s.from_address for _, s in valid_segs)
+            max_addr = max(s.from_address + len(s.data) for _, s in valid_segs)
+            bin_size = max_addr - min_addr
+            self.lbl_segments.configure(
+                text=f"{len(valid_segs)} segment(s), BIN size: {bin_size:,} bytes "
+                     f"(0x{min_addr:X}-0x{max_addr:X})"
+            )
+        else:
+            self.lbl_segments.configure(text="No segments found")
 
         self.btn_load.configure(state="normal")
         self.btn_convert.configure(state="normal")
